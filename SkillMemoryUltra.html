@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Skill Memory Ultra</title>
+<style>
+body{margin:0;background:#0f1117;color:#fff;font-family:system-ui}
+header{padding:16px;background:#161b22;position:sticky;top:0}
+#search{width:100%;padding:10px;border-radius:10px;border:none;background:#222;color:white}
+.grid{padding:12px}
+.card{background:#1c2330;padding:14px;border-radius:14px;margin:10px 0;cursor:pointer}
+.fab{position:fixed;right:20px;bottom:20px;width:60px;height:60px;border-radius:50%;font-size:28px;border:none;background:#3b82f6;color:white}
+button{padding:8px 12px;border:none;border-radius:10px;background:#2a3345;color:white}
+#viewer{display:none;position:fixed;inset:0;background:#0f1117;z-index:999;padding:16px}
+input,textarea{width:100%;box-sizing:border-box;background:#1c2330;color:white;border:1px solid #333;border-radius:10px;padding:10px}
+textarea{height:70vh}
+.stats{margin:10px 0}
+</style>
+</head>
+<body>
+<header>
+<h2>Skill Memory Ultra</h2>
+<div class="stats">🪙 <span id="credits">0</span> | 🔥 <span id="streak">0</span></div>
+<button onclick="claim()">Claim Daily +100</button>
+<button onclick="exportData()">Export</button>
+<button onclick="document.getElementById('imp').click()">Import</button>
+<input id="imp" type="file" accept=".json" hidden>
+<br><br>
+<input id="search" placeholder="Search skills..." oninput="render()">
+</header>
+
+<div id="skills" class="grid"></div>
+
+<div id="viewer">
+<button onclick="closeViewer()">Close</button>
+<button onclick="saveSkill()">Save</button>
+<br><br>
+<input id="title">
+<br><br>
+<textarea id="content"></textarea>
+</div>
+
+<button class="fab" onclick="newSkill()">+</button>
+
+<script>
+let skills=JSON.parse(localStorage.getItem("skills")||"[]");
+let current=-1;
+
+function persist(){
+ localStorage.setItem("skills",JSON.stringify(skills));
+}
+
+function render(){
+ let q=document.getElementById("search").value.toLowerCase();
+ let out="";
+ skills.forEach((s,i)=>{
+   if((s.name||"").toLowerCase().includes(q)){
+      out+=`<div class="card" onclick="openSkill(${i})"><h3>${s.name}</h3></div>`;
+   }
+ });
+ document.getElementById("skills").innerHTML=out;
+ document.getElementById("credits").textContent=localStorage.getItem("credits")||0;
+ document.getElementById("streak").textContent=localStorage.getItem("streak")||0;
+}
+
+function newSkill(){
+ skills.push({name:"New Skill",text:""});
+ persist(); render();
+}
+
+function openSkill(i){
+ current=i;
+ viewer.style.display="block";
+ title.value=skills[i].name;
+ content.value=skills[i].text;
+}
+
+function closeViewer(){ viewer.style.display="none"; }
+
+function saveSkill(){
+ skills[current].name=title.value;
+ skills[current].text=content.value;
+ persist(); render(); closeViewer();
+}
+
+function exportData(){
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([JSON.stringify(skills,null,2)],{type:"application/json"}));
+ a.download="skills.json";
+ a.click();
+}
+
+imp.onchange=(e)=>{
+ let f=e.target.files[0];
+ if(!f) return;
+ let r=new FileReader();
+ r.onload=()=>{
+   skills=JSON.parse(r.result);
+   persist(); render();
+   alert("Imported!");
+ };
+ r.readAsText(f);
+};
+
+function claim(){
+ let last=+localStorage.getItem("lastClaim")||0;
+ let now=Date.now();
+ if(now-last<86400000){
+   alert("Come back after 24 hours.");
+   return;
+ }
+ localStorage.setItem("credits", (+localStorage.getItem("credits")||0)+100);
+ localStorage.setItem("streak", (+localStorage.getItem("streak")||0)+1);
+ localStorage.setItem("lastClaim", now);
+ render();
+}
+
+render();
+</script>
+</body>
+</html>
